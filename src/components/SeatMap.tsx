@@ -75,7 +75,12 @@ export const SeatMap: React.FC<SeatMapProps> = ({ vendorData, config }) => {
                     />
                 ))}
 
-                {rows.length === 0 && <p style={{ textAlign: 'center', color: '#888' }}>No seat data available</p>}
+                {(!rows || rows.length === 0) && (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                        <p style={{ fontSize: '1.2rem', marginBottom: '8px' }}>⚠️</p>
+                        <p>Seat map not available for this flight.</p>
+                    </div>
+                )}
             </div>
 
             <Legend config={config} />

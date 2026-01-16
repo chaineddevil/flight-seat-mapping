@@ -14,6 +14,7 @@ export interface VendorRow {
 
 export interface VendorSegmentSeat {
     RowSeats: VendorRow[];
+    SegmentSeat?: VendorSegmentSeat[]; // Support nested segments (Structure B)
 }
 
 export interface VendorSeatDynamic {

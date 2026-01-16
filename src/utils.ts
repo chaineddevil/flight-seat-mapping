@@ -1,27 +1,57 @@
 import type { InternalSeat, VendorResponse, VendorSeat } from './types';
 
 export const transformSeatData = (data: VendorResponse): InternalSeat[] => {
+    console.log('Transforming Seat Data. Input:', data);
+
     const seats: InternalSeat[] = [];
 
     // Safely traverse the nested structure
-    const segments = data.SeatDynamic;
-    if (!segments || segments.length === 0) return [];
+    const segments = data?.SeatDynamic;
+    if (!segments || !Array.isArray(segments) || segments.length === 0) {
+        console.warn('No seat segments found in data');
+        return [];
+    }
 
-    // Assuming we only care about the first segment for this single-leg view
-    const segment = segments[0]?.SegmentSeat;
-    if (!segment || segment.length === 0) return [];
+    // Process all segments (handling multiple flights/segments if present)
+    segments.forEach((dynamicSegment, index) => {
+        const rootSegmentSeats = dynamicSegment?.SegmentSeat;
+        if (!rootSegmentSeats || !Array.isArray(rootSegmentSeats)) return;
 
-    // Assuming one cabin/deck for now, flatten all RowSeats
-    segment.forEach(seg => {
-        seg.RowSeats.forEach(row => {
-            row.Seats.forEach(vendorSeat => {
+        console.log(`Processing Segment ${index}, items:`, rootSegmentSeats.length);
+
+        // Recursively find all RowSeats
+        const collectRows = (items: any[]): any[] => {
+            let collected: any[] = [];
+            items?.forEach(item => {
+                if (!item) return;
+
+                // Case A: Direct RowSeats
+                if (item.RowSeats && Array.isArray(item.RowSeats)) {
+                    collected = collected.concat(item.RowSeats);
+                }
+
+                // Case B: Nested SegmentSeat
+                if (item.SegmentSeat && Array.isArray(item.SegmentSeat)) {
+                    collected = collected.concat(collectRows(item.SegmentSeat));
+                }
+            });
+            return collected;
+        };
+
+        const allRows = collectRows(rootSegmentSeats);
+        console.log(`Found ${allRows.length} rows in segment ${index}`);
+
+        allRows.forEach(row => {
+            if (!row?.Seats || !Array.isArray(row.Seats)) return;
+
+            row.Seats.forEach((vendorSeat: VendorSeat) => {
                 if (!isValidSeat(vendorSeat)) return;
-
                 seats.push(mapToInternalSeat(vendorSeat));
             });
         });
     });
 
+    console.log(`Total internal seats created: ${seats.length}`);
     return seats;
 };
 
